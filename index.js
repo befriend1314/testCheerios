@@ -8,7 +8,7 @@ const fs = require("fs");
 function filterRankUrl(){
   const blogRankUrl = []
   const defaultUrl = 'https://www.nimingqiang.com/xiaomimi/'
-  for(let i = 1141; i < 1143; i ++) {
+  for(let i = 1; i < 200; i ++) {
     let url = defaultUrl + i + '.html'
     blogRankUrl.push(url)
   }
@@ -25,63 +25,97 @@ function printArticleInfo(blogData){
 //过滤每个URL数组对应页面的文章
 function filterArticle(html){
   var $ = cheerio.load(html)
+
+  const page404 = $('.bk_404')
+
+  const page502 = $('h1').text()
+
+  const isPage502 = page502.indexOf('502') !== -1 ? false : true
+
+  console.log('isPage502', isPage502)
+
+
+
   var blogData = {}
 
-  // 获取标题
-  const title = $('h2').text()
-  blogData.title = title
-  // 获取时间
-  const times = $('.list-foot .left').text()
-  blogData.times = times
+  console.log('page404.length', page404.length)
 
-  // 获取id
-  const asctionStr = $('.comments form').attr('action')
-  const urlParams = new URL(asctionStr)
-  const pageId = urlParams.searchParams.get('postid')
-  blogData.pageId = pageId
+  if(page404.length === 0 && !!isPage502) {
+    
+    // 获取标题
+    const title = $('h2').text()
+    blogData.title = title
+    // 获取时间
+    const times = $('.list-foot .left').text()
+    blogData.times = times
 
-  // 获取正文，保存为字符串数组
-  const contentHtml = $('.content>p')
-  let content  = []
-  for (let j = 0; j < contentHtml.length; j++) {
-    let pHtml = contentHtml.eq(j).html() + ''
-    if(pHtml.indexOf('<br>') !== -1) {
-      content.push('\n')
-    } else {
-      content.push(pHtml)
+    // 获取id
+    const asctionStr = $('.comments form').attr('action')
+    if(asctionStr) {
+      const urlParams = new URL(asctionStr)
+      const pageId = urlParams.searchParams.get('postid')
+      blogData.pageId = pageId
     }
-  }
+    
 
-  blogData.content = content
+    // 获取正文，保存为字符串数组
+    const contentHtml = $('.content>p')
+    let content  = []
+    for (let j = 0; j < contentHtml.length; j++) {
+      let pHtml = contentHtml.eq(j).html() + ''
+      if(pHtml.indexOf('<br>') !== -1) {
+        content.push('\n')
+      } else {
+        content.push(pHtml)
+      }
+    }
 
-  // 获取评论
-  const commentList = []
-  const commentListHtml = $('.commentname')
-  for(let i = 0; i < commentListHtml.length; i++ ){
-    const obj = {}
-    obj.nickName = $(commentListHtml).eq(i).find('a').eq(0).text()
-    obj.ipAdress = $(commentListHtml).eq(i).find('a').eq(1).text().slice(3)
-    obj.replyTimes = $(commentListHtml).eq(i).find('span').text().slice(0,19)
-    obj.content = $(commentListHtml).eq(i).find('p').text()
-    commentList.push(obj)
-  }
-  blogData.commentList = commentList
+    blogData.content = content
 
-  // 获取上一条
-  const prevStr = $('.xiangguan .left a').attr('href')
-  const prev = {
-    pageId: prevStr.substring(37, prevStr.length - 5),
-    title: $('.xiangguan .left a').text(),
-  }
-  blogData.prev = prev
+    // 获取评论
+    const commentList = []
+    const commentListHtml = $('.commentname')
+    for(let i = 0; i < commentListHtml.length; i++ ){
+      const obj = {}
+      obj.nickName = $(commentListHtml).eq(i).find('a').eq(0).text()
+      obj.ipAdress = $(commentListHtml).eq(i).find('a').eq(1).text().slice(3)
+      obj.replyTimes = $(commentListHtml).eq(i).find('span').text().slice(0,19)
+      obj.content = $(commentListHtml).eq(i).find('p').text()
+      commentList.push(obj)
+    }
+    blogData.commentList = commentList
 
-  // 获取下一条
-  const nextStr = $('.xiangguan .right a').attr('href')
-  const next = {
-    pageId: nextStr.substring(37, nextStr.length - 5),
-    title: $('.xiangguan .right a').text(),
+    // 获取上一条
+    const prevStr = $('.xiangguan .left a').attr('href')
+
+    if(prevStr) {
+      const prev = {
+        pageId: prevStr.substring(37, prevStr.length - 5),
+        title: $('.xiangguan .left a').text(),
+      }
+      blogData.prev = prev
+    } else {
+      console.log('无效上一条', prevStr)
+    }
+    
+
+    // 获取下一条
+    const nextStr = $('.xiangguan .right a').attr('href')
+
+    if(nextStr) {
+      const next = {
+        pageId: nextStr.substring(37, nextStr.length - 5),
+        title: $('.xiangguan .right a').text(),
+      }
+      blogData.next = next
+    } else {
+      console.log('无效下一条', nextStr)
+    }
+    
+
+  } else {
+    console.log('当前无效 html', html)
   }
-  blogData.next = next
 
   return blogData
 
@@ -93,17 +127,18 @@ function getUrlAsync(url){
   return new Promise(function(resolve,reject){
       console.log('正在爬取：'+url)
       https.get(url,function(res){
-          var html = '';
-          res.on('data',function(data){
-              html+=data;
-          })
-          res.on('end',function(){
-              resolve(html)
-          })
-      }).on('error',function(){
+        var html = '';
+        res.on('data',function(data){
+            html+=data;
+        })
+        res.on('end',function(){
+            resolve(html)
+        })
+      }).on('error',function(e){
           reject(e)
           console.log('获取数据出错');
       })
+      
   })
 }
 
@@ -124,9 +159,14 @@ function starFetch() {
   Promise.all(fetchBlogArray).then( res => {
     res.forEach(html => {
       const blogData = filterArticle(html)
-      printArticleInfo(blogData)
-      data.push(blogData)
+      if(Object.keys(blogData).length > 0) {
+        printArticleInfo(blogData)
+        data.push(blogData)
+      }
+      
     })
+
+    console.log(`共完成爬取${data.length} 条数据`)
 
     fs.writeFile('./data.json', JSON.stringify(data), 'utf8', err => {
       if (err) throw err
