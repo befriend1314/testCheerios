@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /zb_users/
+Disallow: /zb_system/
+Sitemap: https://www.nimingqiang.com/sitemap.xml

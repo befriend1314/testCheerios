@@ -8,7 +8,7 @@ const fs = require("fs");
 function filterRankUrl(){
   const blogRankUrl = []
   const defaultUrl = 'https://www.nimingqiang.com/xiaomimi/'
-  for(let i = 1; i < 200; i ++) {
+  for(let i = 1; i < 50; i ++) {
     let url = defaultUrl + i + '.html'
     blogRankUrl.push(url)
   }
@@ -114,7 +114,7 @@ function filterArticle(html){
     
 
   } else {
-    console.log('当前无效 html', html)
+    // console.log('当前无效 html', html)
   }
 
   return blogData
@@ -141,6 +141,20 @@ function getUrlAsync(url){
       
   })
 }
+
+// 回调的方式
+
+fetchData() {
+  let i = 0;
+
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(i)
+    })
+
+  })
+}
+
 
 // 开始
 function starFetch() {
