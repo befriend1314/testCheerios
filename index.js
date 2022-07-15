@@ -4,22 +4,10 @@ const cheerio = require('cheerio')
 
 const fs = require("fs");
 
-// 拿到所有url
-function filterRankUrl(){
-  const blogRankUrl = []
-  const defaultUrl = 'https://www.nimingqiang.com/xiaomimi/'
-  for(let i = 1; i < 50; i ++) {
-    let url = defaultUrl + i + '.html'
-    blogRankUrl.push(url)
-  }
-  return blogRankUrl
-}
-
-
 //打印每个页面的信息
 function printArticleInfo(blogData){
-  console.log('时间', blogData.times)
-  console.log('id', blogData.pageId)
+  // console.log('时间', blogData.times)
+  // console.log('id', blogData.pageId)
 }
 
 //过滤每个URL数组对应页面的文章
@@ -32,13 +20,10 @@ function filterArticle(html){
 
   const isPage502 = page502.indexOf('502') !== -1 ? false : true
 
-  console.log('isPage502', isPage502)
 
 
 
   var blogData = {}
-
-  console.log('page404.length', page404.length)
 
   if(page404.length === 0 && !!isPage502) {
     
@@ -124,34 +109,16 @@ function filterArticle(html){
 // 爬取
 
 function getUrlAsync(url){
-  return new Promise(function(resolve,reject){
-      console.log('正在爬取：'+url)
-      https.get(url,function(res){
-        var html = '';
-        res.on('data',function(data){
-            html+=data;
-        })
-        res.on('end',function(){
-            resolve(html)
-        })
-      }).on('error',function(e){
-          reject(e)
-          console.log('获取数据出错');
+  return new Promise(function(resolve, reject){
+      fs.readFile(`./xiaomimi/${url}`, (error, htmlData) => {
+        if(error){
+          console.log(error)
+        } else {
+          const htmlStr = htmlData.toString()
+          resolve(htmlStr)
+        }
+        
       })
-      
-  })
-}
-
-// 回调的方式
-
-fetchData() {
-  let i = 0;
-
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve(i)
-    })
-
   })
 }
 
@@ -159,34 +126,38 @@ fetchData() {
 // 开始
 function starFetch() {
 
-  const urlArr = filterRankUrl()
-
   const fetchBlogArray = []
 
 
-  urlArr.forEach(function(url){
-    console.log('url', url)
-    fetchBlogArray.push(getUrlAsync(url))
-  })
-
-  const data = []
-  Promise.all(fetchBlogArray).then( res => {
-    res.forEach(html => {
-      const blogData = filterArticle(html)
-      if(Object.keys(blogData).length > 0) {
-        printArticleInfo(blogData)
-        data.push(blogData)
-      }
+  fs.readdir('./xiaomimi', (err, res) => {
+    if(err) {
+      console.log(err)
+    } else {
+      res.slice(0, 50).forEach(function(url){
+        fetchBlogArray.push(getUrlAsync(url))
+  
+        const data = []
+        Promise.all(fetchBlogArray).then( res => {
+          res.forEach(html => {
+            const blogData = filterArticle(html)
+            if(Object.keys(blogData).length > 0) {
+              printArticleInfo(blogData)
+              data.push(blogData)
+            }
+          })
       
-    })
+          console.log(`共完成爬取${data.length} 条数据`)
 
-    console.log(`共完成爬取${data.length} 条数据`)
-
-    fs.writeFile('./data.json', JSON.stringify(data), 'utf8', err => {
-      if (err) throw err
-      console.log('It\'s saved!');
-    })
-    console.log('成功了')
+          console.log('datadatadata')
+      
+          fs.writeFile('./data.json', JSON.stringify(data), 'utf8', err => {
+            if (err) throw err
+            console.log('It\'s saved!');
+          })
+          console.log('成功了')
+        })
+      })
+    }
   })
 
 }
