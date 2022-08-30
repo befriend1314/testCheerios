@@ -10,6 +10,13 @@ function printArticleInfo(blogData){
   // console.log('id', blogData.pageId)
 }
 
+function randomNum(Min, Max) {
+  var Range = Max - Min;
+  var Rand = Math.random();
+  var num = Min + Math.floor(Rand * Range); //舍去
+  return num;
+}
+
 //过滤每个URL数组对应页面的文章
 function filterArticle(html){
   var $ = cheerio.load(html)
@@ -32,7 +39,13 @@ function filterArticle(html){
     blogData.title = title
     // 获取时间
     const times = $('.list-foot .left').text()
-    blogData.times = times
+
+    let y = new Date().getFullYear()
+    let moon = times.substr(0, 2)
+    let day = times.substr(3,2)
+    let t = times.substr(6, 8)
+    const strTimes = y + '-' + moon + '-' + day + ' ' +t
+    blogData.times = new Date(strTimes).getTime()
 
     // 获取id
     const asctionStr = $('.comments form').attr('action')
@@ -62,13 +75,21 @@ function filterArticle(html){
     const commentListHtml = $('.commentname')
     for(let i = 0; i < commentListHtml.length; i++ ){
       const obj = {}
+      const times = $(commentListHtml).eq(i).find('span').text().slice(0,19)
       obj.nickName = $(commentListHtml).eq(i).find('a').eq(0).text()
       obj.ipAdress = $(commentListHtml).eq(i).find('a').eq(1).text().slice(3)
-      obj.replyTimes = $(commentListHtml).eq(i).find('span').text().slice(0,19)
+      // obj.replyTimes = times
       obj.content = $(commentListHtml).eq(i).find('p').text()
+      obj.avatarIndex = randomNum(1, 20)
+      obj.times = +new Date(times)
       commentList.push(obj)
     }
     blogData.commentList = commentList
+    blogData.collectList = []
+    blogData.listType = '0'
+    blogData.isvisible = '1'
+    blogData.createUserOpenId = ''
+    blogData.avatarIndex = randomNum(1, 20)
 
     // 获取上一条
     const prevStr = $('.xiangguan .left a').attr('href')
@@ -109,6 +130,7 @@ function filterArticle(html){
 // 爬取
 
 function getUrlAsync(url){
+  console.log('url', url)
   return new Promise(function(resolve, reject){
       fs.readFile(`./xiaomimi/${url}`, (error, htmlData) => {
         if(error){
@@ -133,7 +155,7 @@ function starFetch() {
     if(err) {
       console.log(err)
     } else {
-      res.slice(0, 50).forEach(function(url){
+      res.slice(0, 20).forEach(function(url){
         fetchBlogArray.push(getUrlAsync(url))
   
         const data = []
@@ -142,13 +164,11 @@ function starFetch() {
             const blogData = filterArticle(html)
             if(Object.keys(blogData).length > 0) {
               printArticleInfo(blogData)
-              data.push(blogData)
+              data.push(JSON.stringify(blogData))
             }
           })
       
           console.log(`共完成爬取${data.length} 条数据`)
-
-          console.log('datadatadata')
       
           fs.writeFile('./data.json', JSON.stringify(data), 'utf8', err => {
             if (err) throw err
