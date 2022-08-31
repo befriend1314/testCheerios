@@ -4,7 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "step1": "node writeList.js",
+    "step2": "wget -P ./pages -i downloadList.txt",
+    "step3": "node index.js",
+    "step4": "node format.js"
   },
   "author": "",
   "license": "ISC",

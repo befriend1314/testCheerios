@@ -132,7 +132,7 @@ function filterArticle(html){
 function getUrlAsync(url){
   console.log('url', url)
   return new Promise(function(resolve, reject){
-      fs.readFile(`./xiaomimi/${url}`, (error, htmlData) => {
+      fs.readFile(`./pages/${url}`, (error, htmlData) => {
         if(error){
           console.log(error)
         } else {
@@ -151,7 +151,7 @@ function starFetch() {
   const fetchBlogArray = []
 
 
-  fs.readdir('./xiaomimi', (err, res) => {
+  fs.readdir('./pages', (err, res) => {
     if(err) {
       console.log(err)
     } else {
